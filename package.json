@@ -1,0 +1,27 @@
+{
+  "name": "mqtt2db",
+  "version": "1.0.0",
+  "description": "mqtt to db module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/icalik/mqtt2db.git"
+  },
+  "keywords": [
+    "mqtt",
+    "database",
+    "m2m"
+  ],
+  "author": "Ismet Said Calik",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/icalik/mqtt2db/issues"
+  },
+  "homepage": "https://github.com/icalik/mqtt2db#readme",
+  "dependencies": {
+    "mqtt": "^2.13.0"
+  }
+}
