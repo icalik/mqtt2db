@@ -9,7 +9,7 @@ var mqtt = require('mqtt'); //https://www.npmjs.com/package/mqtt
 var topicName = '#'; //subscribe to all topics
 
 var brokerURL = 'mqtt://server.calik.me';
-var databaseURL = '185.106.210.172';
+var databaseURL = 'server.calik.me';
 
 var options = {
 	clientId: 'mqtt2db',
@@ -27,23 +27,23 @@ client.on('message', mqtt_messsageReceived);
 client.on('close', mqtt_close);
 
 function mqtt_connect() {
-    console.log("Connecting MQTT");
-    client.subscribe(topicName, mqtt_subscribe);
+	console.log("Connecting MQTT");
+	client.subscribe(topicName, mqtt_subscribe);
 };
 
 function mqtt_subscribe(err, granted) {
-    console.log("Subscribed to " + topicName);
-    if (err) {console.log(err);}
+	console.log("Subscribed to " + topicName);
+	if (err) {console.log(err);}
 };
 
 function mqtt_reconnect(err) {
-    console.log("Reconnect MQTT");
-    if (err) {console.log(err);}
+	console.log("Reconnect MQTT");
+	if (err) {console.log(err);}
 	client  = mqtt.connect(brokerURL, options);
 };
 
 function mqtt_error(err) {
-    console.log("Error!");
+	console.log("Error!");
 	if (err) {console.log(err);}
 };
 
@@ -55,17 +55,11 @@ function after_publish() {
 function mqtt_messsageReceived(topic, message, packet) {
 	var message_str = message.toString(); //convert byte array to string
 	message_str = message_str.replace(/\n$/, ''); //remove new line
-	//payload syntax: clientID,topic,message
-	if (countInstances(message_str) != 1) {
-		console.log("Invalid payload");
-		} else {	
-		insert_message(topic, message_str, packet);
-		//console.log(message_arr);
-	}
+	insert_message(topic, message_str, packet);
 };
 
 function mqtt_close() {
-	//console.log("Close MQTT");
+	console.log("Close MQTT");
 };
 
 //mySQL
@@ -73,9 +67,9 @@ var mysql = require('mysql'); //https://www.npmjs.com/package/mysql
 //Create Connection
 var connection = mysql.createConnection({
 	host: databaseURL,
-	user: "calikme_devicelog",
-	password: "E6tHk23fHByG",
-	database: "calikme_devicelog"
+	user: "root",
+	password: "root",
+	database: "cartrack"
 });
 
 connection.connect(function(err) {
@@ -83,30 +77,63 @@ connection.connect(function(err) {
 	console.log("Database Connected!");
 });
 
+function getDateTime() {
+	var date = new Date();
+	var hour = date.getHours();
+	hour = (hour < 10 ? "0" : "") + hour;
+	var min  = date.getMinutes();
+	min = (min < 10 ? "0" : "") + min;
+	var sec  = date.getSeconds();
+	sec = (sec < 10 ? "0" : "") + sec;
+	var year = date.getFullYear();
+	var month = date.getMonth() + 1;
+	month = (month < 10 ? "0" : "") + month;
+	var day  = date.getDate();
+	day = (day < 10 ? "0" : "") + day;
+	return year + ":" + month + ":" + day + " " + hour + ":" + min + ":" + sec;
+}
+
+
+
 //insert a row into the devicelog table
 function insert_message(topic, message_str, packet) {
 	var message_arr = extract_string(message_str); //split a string into an array
-	var clientID= message_arr[0];
-	var message = message_arr[1];
-	var sql = "INSERT INTO ?? (??,??,??) VALUES (?,?,?)";
-	var params = ['devicelog', 'clientID', 'topic', 'message', clientID, topic, message];
-	sql = mysql.format(sql, params);	
-	
-	connection.query(sql, function (error, results) {
-		if (error) throw error;
-		console.log("Message added: " + message_str);
-	}); 
+	switch(topic)
+	{
+		case "/init":
+		var deviceID= message_str;
+
+		var date = getDateTime();
+		var sql = "INSERT INTO ?? (??,??) VALUES (?,?)";
+		var params = ['deviceinit', 'deviceID', 'date', deviceID, date];
+		sql = mysql.format(sql, params);	
+
+		connection.query(sql, function (error, results) {
+			if (error) throw error;
+			console.log("Message added to " + topic +" : "+ message_str);
+		}); 
+		break;
+
+		case "/message":
+		var deviceID= message_arr[0];
+		var longitude = message_arr[1];
+		var latitude = message_arr[2];
+		var angle = message_arr[3];
+		var date = getDateTime();
+		var sql = "INSERT INTO ?? (??,??,??,??,??) VALUES (?,?,?,?,?)";
+		var params = ['devicelogs', 'deviceID', 'date','longitude','latitude','angle', deviceID,date,longitude,latitude,angle];
+		sql = mysql.format(sql, params);	
+
+		connection.query(sql, function (error, results) {
+			if (error) throw error;
+			console.log("Message added to " + topic +" : "+ message_str);
+		}); 
+		break;
+	}
 };	
 
 //split a string into an array of substrings
 function extract_string(message_str) {
-	var message_arr = message_str.split(","); //convert to array	
+	var message_arr = message_str.split("@"); //convert to array	
 	return message_arr;
-};	
-
-//count number of delimiters in a string
-var delimiter = ",";
-function countInstances(message_str) {
-	var substrings = message_str.split(delimiter);
-	return substrings.length - 1;
 };
