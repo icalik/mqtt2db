@@ -8,8 +8,8 @@
 var mqtt = require('mqtt'); //https://www.npmjs.com/package/mqtt
 var topicName = '#'; //subscribe to all topics
 
-var brokerURL = 'mqtt://server.calik.me';
-var databaseURL = 'server.calik.me';
+var brokerURL = 'mqtt://vtsp.cf';
+var databaseURL = 'vtsp.cf';
 
 var options = {
 	clientId: 'mqtt2db',
@@ -68,8 +68,8 @@ var mysql = require('mysql'); //https://www.npmjs.com/package/mysql
 var connection = mysql.createConnection({
 	host: databaseURL,
 	user: "root",
-	password: "root",
-	database: "cartrack"
+	password: "BvfynUzuGXrN5uwe",
+	database: "vts"
 });
 
 connection.connect(function(err) {
@@ -77,53 +77,39 @@ connection.connect(function(err) {
 	console.log("Database Connected!");
 });
 
-function getDateTime() {
-	var date = new Date();
-	var hour = date.getHours();
-	hour = (hour < 10 ? "0" : "") + hour;
-	var min  = date.getMinutes();
-	min = (min < 10 ? "0" : "") + min;
-	var sec  = date.getSeconds();
-	sec = (sec < 10 ? "0" : "") + sec;
-	var year = date.getFullYear();
-	var month = date.getMonth() + 1;
-	month = (month < 10 ? "0" : "") + month;
-	var day  = date.getDate();
-	day = (day < 10 ? "0" : "") + day;
-	return year + ":" + month + ":" + day + " " + hour + ":" + min + ":" + sec;
-}
-
-
-
 //insert a row into the devicelog table
 function insert_message(topic, message_str, packet) {
 	var message_arr = extract_string(message_str); //split a string into an array
 	switch(topic)
 	{
+		//353115085687217@28603
 		case "/init":
-		var deviceID= message_str;
-
-		var date = getDateTime();
+		var deviceID= message_arr[0];
+		var operator= message_arr[1];
 		var sql = "INSERT INTO ?? (??,??) VALUES (?,?)";
-		var params = ['deviceinit', 'deviceID', 'date', deviceID, date];
+		var params = ['deviceinit', 'deviceID', 'operator', deviceID,operator];
 		sql = mysql.format(sql, params);	
-
 		connection.query(sql, function (error, results) {
 			if (error) throw error;
 			console.log("Message added to " + topic +" : "+ message_str);
-		}); 
+		});
+		
+		//console.log(message_str[0] +" - "+ message_str[1]); 
 		break;
 
+		//353115085687217@38.670876@39.219166@1130.20@0.00@0.00
 		case "/message":
 		var deviceID= message_arr[0];
 		var longitude = message_arr[1];
 		var latitude = message_arr[2];
-		var angle = message_arr[3];
-		var date = getDateTime();
-		var sql = "INSERT INTO ?? (??,??,??,??,??) VALUES (?,?,?,?,?)";
-		var params = ['devicelogs', 'deviceID', 'date','longitude','latitude','angle', deviceID,date,longitude,latitude,angle];
-		sql = mysql.format(sql, params);	
+		var altitude = message_arr[3];
+		var speed = message_arr[4];
+		var angle = message_arr[5];
 
+		var sql = "INSERT INTO ?? (??,??,??,??,??,??) VALUES (?,?,?,?,?,?)";
+		var params = ['devicelogs', 'deviceID','longitude','latitude','altitude','angle','speed', deviceID,longitude,latitude,altitude,angle,speed];
+		sql = mysql.format(sql, params);	
+		//console.log(sql);
 		connection.query(sql, function (error, results) {
 			if (error) throw error;
 			console.log("Message added to " + topic +" : "+ message_str);
